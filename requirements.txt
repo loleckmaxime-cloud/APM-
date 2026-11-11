@@ -1,2 +1,0 @@
-streamlit
-steamlit-mic-recorder
