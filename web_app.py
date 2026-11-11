@@ -2,18 +2,16 @@ import streamlit as st
 import unicodedata
 import re
 import time
-from streamlit_mic_recorder import mic_recorder
 
 st.set_page_config(page_title="Kely - Ton IA de Paiement Mobile", page_icon="💳", layout="centered")
 
-# ===== STYLE INSTAGRAM - TEXTE NOIR OBLIGATOIRE =====
+# ===== STYLE INSTAGRAM - TEXTE NOIR =====
 st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF !important; }
     h1, h2, h3, p, span, label, div { color: black !important; }
     h1 { text-align: center; color: black !important; }
 
-    /* Conteneur d'une bulle */
     .bubble-row-user {
         display: flex !important;
         justify-content: flex-end !important;
@@ -26,7 +24,6 @@ st.markdown("""
         width: 100% !important;
         margin: 6px 0 !important;
     }
-    /* Ta bulle : A DROITE EN BLEU CLAIR + TEXTE NOIR */
     .bubble-user {
         background-color: #3797F0 !important;
         color: black !important;
@@ -36,11 +33,6 @@ st.markdown("""
         font-size: 16px !important;
         line-height: 1.4 !important;
     }
-    .bubble-user p, .bubble-user strong, .bubble-user b {
-        color: black !important;
-        margin: 0 !important;
-    }
-    /* Bulle de Kely : A GAUCHE EN ROUGE CLAIR + TEXTE NOIR */
     .bubble-kely {
         background-color: #FFD6D1 !important;
         color: black !important;
@@ -50,10 +42,7 @@ st.markdown("""
         font-size: 16px !important;
         line-height: 1.4 !important;
     }
-    .bubble-kely p, .bubble-kely strong, .bubble-kely b {
-        color: black !important;
-        margin: 0 !important;
-    }
+    .bubble-user b, .bubble-kely b { color: black !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -68,12 +57,17 @@ if "prenom" not in st.session_state:
 if len(st.session_state.messages) == 0:
     st.session_state.messages.append({"role": "assistant", "content": "Salut ! 👋 Moi c'est Kely, ton IA de paiement mobile. Je peux t'aider pour tes dépôts, retraits, transferts, solde, factures... Tu veux commencer par quoi ?"})
 
+# Pour que **gras** marche dans les bulles HTML
+def formater_texte(texte):
+    return re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', texte)
+
 # ===== AFFICHAGE STYLE INSTAGRAM =====
 for message in st.session_state.messages:
+    texte_formate = formater_texte(message["content"])
     if message["role"] == "user":
-        st.markdown(f'<div class="bubble-row-user"><div class="bubble-user">{message["content"]}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="bubble-row-user"><div class="bubble-user">{texte_formate}</div></div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="bubble-row-kely"><div class="bubble-kely">🤖 {message["content"]}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="bubble-row-kely"><div class="bubble-kely">🤖 {texte_formate}</div></div>', unsafe_allow_html=True)
 
 # Boutons suggestions
 st.markdown("**💡 Essaie :**")
@@ -92,12 +86,6 @@ with col4:
     if st.button("🧾 Payer facture"):
         suggestion = "Comment payer ma facture ?"
 
-# Vocal
-st.markdown("### 🎙️ Enregistrement Vocal")
-audio_data = mic_recorder(start_prompt="Parler à Kely", stop_prompt="Arrêter l'enregistrement", key='mic_payment_kely')
-if audio_data:
-    st.audio(audio_data['bytes'])
-    st.success("Message vocal bien reçu par Kely !")
 st.markdown("---")
 
 def normaliser(texte):
@@ -122,7 +110,6 @@ def get_bot_response(text):
     def perso(rep):
         return f"{st.session_state.prenom}, {rep}" if st.session_state.prenom else rep
 
-    # ===== CORRIGÉ : "COMMENT TU VAS" MAINTENANT FONCTIONNE =====
     if re.search(r'\b(bonjour|salut|coucou|bonsoir|hey|alo|allo|hello|bjr|slt)\b', message_norm):
         return "Bonjour ! C'est Kely 😊 Comment ça va ? Je peux t'aider pour : dépôt, retrait, transfert, solde, factures, forfaits, code PIN, sécurité... Dis-moi tout !"
     elif re.search(r'(comment tu vas|comment vas tu|tu vas bien|ca va|comment ca va|la forme|quoi de neuf|tu fais quoi)', message_norm):
@@ -176,12 +163,10 @@ def get_bot_response(text):
 
 def afficher_reponse(prompt_text):
     st.session_state.messages.append({"role": "user", "content": prompt_text})
-    st.markdown(f'<div class="bubble-row-user"><div class="bubble-user">{prompt_text}</div></div>', unsafe_allow_html=True)
-    with st.spinner("Kely est en train d'écrire..."):
-        time.sleep(0.6)
-        response = get_bot_response(prompt_text)
+    time.sleep(0.6)
+    response = get_bot_response(prompt_text)
     st.session_state.messages.append({"role": "assistant", "content": response})
-    st.markdown(f'<div class="bubble-row-kely"><div class="bubble-kely">🤖 {response}</div></div>', unsafe_allow_html=True)
+    st.rerun()
 
 if suggestion:
     afficher_reponse(suggestion)
